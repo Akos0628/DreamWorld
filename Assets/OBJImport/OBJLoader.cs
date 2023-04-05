@@ -75,12 +75,12 @@ namespace Dummiesman
         /// </summary>
         /// <param name="mtlLibPath"></param>
         private void LoadMaterialLibrary(string mtlLibPath)
-        {
-            if (_objInfo != null)
-            {
-                if (File.Exists(Path.Combine(_objInfo.Directory.FullName, mtlLibPath)))
+		{
+			if (_objInfo != null)
+			{
+				if (File.Exists(Path.Combine(_objInfo.Directory.FullName, mtlLibPath)))
                 {
-                    Materials = new MTLLoader().Load(Path.Combine(_objInfo.Directory.FullName, mtlLibPath));
+					Materials = new MTLLoader().Load(Path.Combine(_objInfo.Directory.FullName, mtlLibPath));
                     return;
                 }
             }
@@ -272,10 +272,10 @@ namespace Dummiesman
                     continue;
 
                 var builtObj = builder.Value.Build();
-                builtObj.transform.SetParent(obj.transform, false);
+				builtObj.transform.SetParent(obj.transform, false);
             }
 
-            return obj;
+			return obj;
         }
 
         /// <summary>

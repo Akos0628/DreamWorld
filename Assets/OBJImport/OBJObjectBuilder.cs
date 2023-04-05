@@ -79,16 +79,17 @@ public class OBJObjectBuilder {
 				material = OBJLoaderHelper.CreateNullMaterial();
 				material.name = kvp.Key;
 			} else {
-				if (!_loader.Materials.TryGetValue(kvp.Key, out material)) {
-					material = OBJLoaderHelper.CreateNullMaterial();
+				if (!_loader.Materials.TryGetValue(kvp.Key, out material))
+					{
+						material = OBJLoaderHelper.CreateNullMaterial();
 					material.name = kvp.Key;
 					_loader.Materials[kvp.Key] = material;
 				}
-			}
-			materialArray[submesh] = material;
+				}
+				materialArray[submesh] = material;
 			submesh++;
 		}
-		mr.sharedMaterials = materialArray;
+			mr.sharedMaterials = materialArray;
 
 		//add meshfilter
 		var mf = go.AddComponent<MeshFilter>();

@@ -139,8 +139,7 @@ public class MTLLoader {
 
         Dictionary<string, Material> mtlDict = new Dictionary<string, Material>();
         Material currentMaterial = null;
-
-        for (string line = reader.ReadLine(); line != null; line = reader.ReadLine())
+		for (string line = reader.ReadLine(); line != null; line = reader.ReadLine())
         {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
@@ -157,7 +156,7 @@ public class MTLLoader {
             {
                 string materialName = processedLine.Substring(7);
 
-                var newMtl = new Material(Shader.Find("Standard (Specular setup)")) { name = materialName };
+                var newMtl = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = materialName };
                 mtlDict[materialName] = newMtl;
                 currentMaterial = newMtl;
 
@@ -284,8 +283,8 @@ public class MTLLoader {
             }
         }
 
-        //return our dict
-        return mtlDict;
+		//return our dict
+		return mtlDict;
     }
 
     /// <summary>
