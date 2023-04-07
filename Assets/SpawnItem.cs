@@ -9,15 +9,50 @@ using System.Threading.Tasks;
 using UnityEngine.XR.Interaction.Toolkit;
 using Unity.VisualScripting;
 using Pcx;
+using System.Linq;
 
 public class SpawnItem : MonoBehaviour
 {
-	private string path = "G:\\Work\\mesh300.ply";
+	private string path = "G:\\Work\\mesh.ply";
 	public GameObject go;
 
 	public void Start()
 	{
 		Load();
+		/*var mesh = new Mesh();
+		mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+		mesh.SetVertices(new Vector3[] { new Vector3(0, 1, 0), new Vector3(1, 1, 0), new Vector3(0, 1, 1) });
+		mesh.SetColors(new Color[] { Color.yellow, Color.green, Color.red });
+		mesh.SetTriangles(new int[] { 0,2,1 }, 0);
+		mesh.RecalculateBounds();
+		mesh.RecalculateNormals();
+		mesh.RecalculateTangents();
+
+		mesh.GetTriangles(0);
+
+		mesh.UploadMeshData(true);
+
+
+
+		go = new GameObject("cloud");
+		go.transform.position = new Vector3(0, 1, 0);
+
+		var mf = go.AddComponent<MeshFilter>();
+		mf.mesh = mesh;
+
+		var mr = go.AddComponent<MeshRenderer>();
+		mr.material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+
+		var mc = go.AddComponent<MeshCollider>();
+		mc.convex = true;
+		mc.sharedMesh = mesh;
+
+		var rb = go.AddComponent<Rigidbody>();
+		rb.useGravity = false;
+
+		var xrGrabInt = go.AddComponent<XRGrabInteractable>();
+		xrGrabInt.interactionLayers = 12; // layer 3 and 4
+		xrGrabInt.useDynamicAttach = true;*/
 	}
 
 	public void OnClickOpen()
@@ -30,21 +65,21 @@ public class SpawnItem : MonoBehaviour
 		var importer = new PlyImporterRuntime();
 		var mesh = importer.ImportAsMesh(path);
 
-		var cloudData = importer.ImportAsPointCloudData(path);
+		//var cloudData = importer.ImportAsPointCloudData(path);
 
 
-		go = new GameObject("cloud");
+		go = new GameObject(mesh.name);
 		go.transform.position = new Vector3(0, 1, 0);
 
 		var mf = go.AddComponent<MeshFilter>();
 		mf.mesh = mesh;
 
 		var mr = go.AddComponent<MeshRenderer>();
-		mr.material = new Material(Shader.Find("Point Cloud/Point"));
+		mr.material = new Material(Shader.Find("Universal Render Pipeline/Particles/Simple Lit"));
 
-		var cr = go.AddComponent<PointCloudRenderer>();
-		cr.sourceData = cloudData;
-		cr.pointSize = 0.003f;
+		//var cr = go.AddComponent<PointCloudRenderer>();
+		//cr.sourceData = cloudData;
+		//cr.pointSize = 0.003f;
 
 		var mc = go.AddComponent<MeshCollider>();
 		mc.convex = true;
@@ -53,7 +88,8 @@ public class SpawnItem : MonoBehaviour
 		var rb = go.AddComponent<Rigidbody>();
 
 		var xrGrabInt = go.AddComponent<XRGrabInteractable>();
-		xrGrabInt.interactionLayers = LayerMask.GetMask("direct interaction", "ray interaction");
+		xrGrabInt.interactionLayers = 12; // layer 3 and 4
+		xrGrabInt.useDynamicAttach = true;
 	}
 
 	//   public GameObject model;

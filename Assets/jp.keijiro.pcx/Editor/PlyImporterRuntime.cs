@@ -183,22 +183,22 @@ namespace Pcx
                 mesh.indexFormat = header.vertexCount > 65535 ?
                     IndexFormat.UInt32 : IndexFormat.UInt16;
 
-                mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 				mesh.SetVertices(body.vertices);
                 mesh.SetColors(body.colors);
-                mesh.SetTriangles(body.triangles, 0);
-                mesh.RecalculateBounds();
-                mesh.RecalculateNormals();
-                mesh.RecalculateTangents();
-
-                mesh.GetTriangles(0);
 
                 mesh.SetIndices(
                     Enumerable.Range(0, header.vertexCount).ToArray(),
                     MeshTopology.Points, 0
                 );
 
-                mesh.UploadMeshData(true);
+				mesh.SetTriangles(body.triangles, 0);
+				mesh.RecalculateBounds();
+				mesh.RecalculateNormals();
+				mesh.RecalculateTangents();
+
+				mesh.GetTriangles(0);
+
+				mesh.UploadMeshData(true);
                 return mesh;
             }
             catch (Exception e)
@@ -418,52 +418,85 @@ namespace Pcx
                 data.AddPoint(x, y, z, r, g, b, a);
             }
 
-			/*if (header.properties.Contains(DataProperty.FaceListCorrect))
+			if (header.properties.Contains(DataProperty.FaceListCorrect))
 			{
-                int j = 0;
-                for (var i = 0; i < header.faceCount; i++)
-                {
-                    if (reader.ReadByte() == 4)
+				/*try
+				{
+					using (StreamWriter sw = new StreamWriter(new FileStream("Assets/" + "mesh" + ".txt", FileMode.OpenOrCreate, FileAccess.Write)))
 					{
-                        reader.ReadInt16();
-						var f1 = reader.ReadInt32();
-						reader.ReadInt16();
-						var f2 = reader.ReadInt32();
-						reader.ReadInt16();
-						var f3 = reader.ReadInt32();
-						reader.ReadInt16();
-						var f4 = reader.ReadInt32();
-						reader.ReadInt16();
+						List<byte> bytes = new List<byte>();
+						for (int i = 0; i < header.faceCount; i++)
+						{
+                            var line = "";
+							for (int j = 0; j < 13; j++)
+							{
+								line += reader.ReadByte() + " ";
+							}
+                            sw.WriteLine(line);
+						}
 
-						//var max = Math.Max(Math.Max(f1, f2), Math.Max(f3, f4));
-
-                        //Debug.Log(j++ + "  4");
-
-                        data.AddTriangle(f1, f2, f3);
-                        data.AddTriangle(f3, f4, f1);
-                    } else if (reader.ReadByte() == 3)
-					{
-						reader.ReadInt16();
-						var f1 = reader.ReadInt32();
-						reader.ReadInt16();
-						var f2 = reader.ReadInt32();
-						reader.ReadInt16();
-						var f3 = reader.ReadInt32();
-						reader.ReadInt16();
-
-						//var max = Math.Max(Math.Max(f1, f2), f3);
-
-						//Debug.Log(j++ + "  3");
-
-						data.AddTriangle(f1, f2, f3);
 					}
 				}
-            }*/
+				catch (Exception e)
+				{
+                    Debug.LogException(e);
+				}*/
+
+
+				for (var i = 0; i < header.faceCount; i++)
+                {
+                    switch (reader.ReadByte())
+                    {
+                        case 3:
+                            {
+								var f1 = reader.ReadInt32();
+								var f2 = reader.ReadInt32();
+								var f3 = reader.ReadInt32();
+
+								data.AddTriangle(f1, f2, f3);
+								break;
+						    }
+                        case 4:
+                            {
+								var f1 = reader.ReadInt32();
+								var f2 = reader.ReadInt32();
+								var f3 = reader.ReadInt32();
+								var f4 = reader.ReadInt32();
+
+								data.AddTriangle(f1, f2, f3);
+								data.AddTriangle(f3, f4, f1);
+								break;
+							}
+                        default: { break; }
+                    }
+				}
+
+				/*for (int i = 0; i < header.faceCount; i++)
+				{
+					List<byte> bytes = new List<byte>();
+					for (int j = 0; j < 13; j++)
+					{
+						bytes.Add(reader.ReadByte());
+					}
+					var i1s = bytes.GetRange(1, 4).ToArray();
+					int i1 = BitConverter.ToInt32(i1s, 0);
+
+					var i2s = bytes.GetRange(5, 4).ToArray();
+					int i2 = BitConverter.ToInt32(i2s, 0);
+
+					var i3s = bytes.GetRange(9, 4).ToArray();
+					int i3 = BitConverter.ToInt32(i3s, 0);
+
+                    Debug.Log($"{i1} {i2} {i3}");
+
+					data.AddTriangle(i1, i2, i3);
+				}*/
+			}
 
 
 			return data;
         }
-    }
+	}
 
     #endregion
 }

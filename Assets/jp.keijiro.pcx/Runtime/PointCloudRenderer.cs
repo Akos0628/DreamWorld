@@ -84,8 +84,9 @@ namespace Pcx
             if (_sourceData == null && sourceBuffer == null) return;
 
             // Check the camera condition.
-            var cameras = Camera.allCameras;
-            foreach (var camera in cameras)
+            //var cameras = Camera.allCameras;
+            var camera = Camera.main;
+            //foreach (var camera in cameras)
             {
                 if ((camera.cullingMask & (1 << gameObject.layer)) == 0) return;
                 if (camera.name == "Preview Scene Camera") return;
