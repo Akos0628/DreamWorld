@@ -208,7 +208,44 @@ namespace Pcx
             }
         }
 
-        public PointCloudData ImportAsPointCloudData(string path)
+		public Mesh ImportFromStreamAsMesh(MemoryStream stream)
+		{
+			try
+			{
+				var header = ReadDataHeader(new StreamReader(stream));
+				var body = ReadDataBody(header, new BinaryReader(stream));
+
+				var mesh = new Mesh();
+
+				mesh.indexFormat = header.vertexCount > 65535 ?
+					IndexFormat.UInt32 : IndexFormat.UInt16;
+
+				mesh.SetVertices(body.vertices);
+				mesh.SetColors(body.colors);
+
+				mesh.SetIndices(
+					Enumerable.Range(0, header.vertexCount).ToArray(),
+					MeshTopology.Points, 0
+				);
+
+				mesh.SetTriangles(body.triangles, 0);
+				mesh.RecalculateBounds();
+				mesh.RecalculateNormals();
+				mesh.RecalculateTangents();
+
+				mesh.GetTriangles(0);
+
+				mesh.UploadMeshData(true);
+				return mesh;
+			}
+			catch (Exception e)
+			{
+				Debug.LogError("Failed importing from stream. " + e.Message);
+				return null;
+			}
+		}
+
+		public PointCloudData ImportAsPointCloudData(string path)
         {
             try
             {
