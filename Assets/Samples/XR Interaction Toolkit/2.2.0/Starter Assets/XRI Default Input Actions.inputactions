@@ -287,6 +287,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Simple",
+                    "type": "Button",
+                    "id": "114f0072-5343-46ec-931a-363870cfed88",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -381,11 +390,22 @@
                 {
                     "name": "",
                     "id": "f57b96b8-6ece-4422-ba1f-cd696e1bcb74",
-                    "path": "<XRController>{LeftHand}/menuButton",
+                    "path": "<XRController>{LeftHand}/{menuButton}",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "Menu",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a5b66284-4cba-4032-ac8f-e0eb83b60b6e",
+                    "path": "<XRController>{LeftHand}/{primaryButton}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Simple",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

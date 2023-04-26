@@ -100,7 +100,7 @@ public class SpawnItem : MonoBehaviour
 		var mc = go.AddComponent<MeshCollider>();
 		mc.convex = true;
 		mc.sharedMesh = mesh;
-
+		
 		var rb = go.AddComponent<Rigidbody>();
 
 		var xrGrabInt = go.AddComponent<XRGrabInteractable>();
