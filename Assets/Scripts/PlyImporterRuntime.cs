@@ -4,11 +4,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEditor;
-#if UNITY_2020_2_OR_NEWER
-using UnityEditor.AssetImporters;
-#else
-using UnityEditor.Experimental.AssetImporters;
-#endif
 
 using System;
 using System.Collections.Generic;
@@ -17,81 +12,8 @@ using System.Linq;
 
 namespace Pcx
 {
-    [ScriptedImporter(1, "ply")]
-    class PlyImporter : ScriptedImporter
+    public class PlyImporterRuntime
     {
-        #region ScriptedImporter implementation
-
-        public enum ContainerType { Mesh, ComputeBuffer, Texture  }
-
-        [SerializeField] ContainerType _containerType = ContainerType.Mesh;
-
-        public override void OnImportAsset(AssetImportContext context)
-        {
-            if (_containerType == ContainerType.Mesh)
-            {
-                // Mesh container
-                // Create a prefab with MeshFilter/MeshRenderer.
-                var gameObject = new GameObject();
-                var mesh = ImportAsMesh(context.assetPath);
-
-                var meshFilter = gameObject.AddComponent<MeshFilter>();
-                meshFilter.sharedMesh = mesh;
-
-                var meshRenderer = gameObject.AddComponent<MeshRenderer>();
-                meshRenderer.sharedMaterial = GetDefaultMaterial();
-
-                context.AddObjectToAsset("prefab", gameObject);
-                if (mesh != null) context.AddObjectToAsset("mesh", mesh);
-
-                context.SetMainObject(gameObject);
-            }
-            else if (_containerType == ContainerType.ComputeBuffer)
-            {
-                // ComputeBuffer container
-                // Create a prefab with PointCloudRenderer.
-                var gameObject = new GameObject();
-                var data = ImportAsPointCloudData(context.assetPath);
-
-                var renderer = gameObject.AddComponent<PointCloudRenderer>();
-                renderer.sourceData = data;
-
-                context.AddObjectToAsset("prefab", gameObject);
-                if (data != null) context.AddObjectToAsset("data", data);
-
-                context.SetMainObject(gameObject);
-            }
-            else // _containerType == ContainerType.Texture
-            {
-                // Texture container
-                // No prefab is available for this type.
-                var data = ImportAsBakedPointCloud(context.assetPath);
-                if (data != null)
-                {
-                    context.AddObjectToAsset("container", data);
-                    context.AddObjectToAsset("position", data.positionMap);
-                    context.AddObjectToAsset("color", data.colorMap);
-                    context.SetMainObject(data);
-                }
-            }
-        }
-
-        #endregion
-
-        #region Internal utilities
-
-        static Material GetDefaultMaterial()
-        {
-            // Via package manager
-            var path_upm = "Packages/jp.keijiro.pcx/Editor/Default Point.mat";
-            // Via project asset database
-            var path_prj = "Assets/Pcx/Editor/Default Point.mat";
-            return AssetDatabase.LoadAssetAtPath<Material>(path_upm) ??
-                   AssetDatabase.LoadAssetAtPath<Material>(path_prj);
-        }
-
-        #endregion
-
         #region Internal data structure
 
         enum DataProperty {
@@ -100,7 +22,8 @@ namespace Pcx
             R16, G16, B16, A16,
             SingleX, SingleY, SingleZ,
             DoubleX, DoubleY, DoubleZ,
-            Data8, Data16, Data32, Data64
+            Data8, Data16, Data32, Data64,
+            FaceListCorrect
         }
 
         static int GetPropertySize(DataProperty p)
@@ -133,17 +56,20 @@ namespace Pcx
         {
             public List<DataProperty> properties = new List<DataProperty>();
             public int vertexCount = -1;
-        }
+			public int faceCount = -1;
+		}
 
         class DataBody
         {
             public List<Vector3> vertices;
             public List<Color32> colors;
+            public List<int> triangles;
 
             public DataBody(int vertexCount)
             {
                 vertices = new List<Vector3>(vertexCount);
                 colors = new List<Color32>(vertexCount);
+                triangles = new List<int>();
             }
 
             public void AddPoint(
@@ -154,13 +80,18 @@ namespace Pcx
                 vertices.Add(new Vector3(x, y, z));
                 colors.Add(new Color32(r, g, b, a));
             }
+
+            public void AddTriangle(int a, int b, int c)
+            {
+                triangles.AddRange(new int[] { a, b, c });
+            }
         }
 
         #endregion
 
         #region Reader implementation
 
-        Mesh ImportAsMesh(string path)
+        public Mesh ImportAsMesh(string path)
         {
             try
             {
@@ -174,7 +105,7 @@ namespace Pcx
                 mesh.indexFormat = header.vertexCount > 65535 ?
                     IndexFormat.UInt32 : IndexFormat.UInt16;
 
-                mesh.SetVertices(body.vertices);
+				mesh.SetVertices(body.vertices);
                 mesh.SetColors(body.colors);
 
                 mesh.SetIndices(
@@ -182,7 +113,14 @@ namespace Pcx
                     MeshTopology.Points, 0
                 );
 
-                mesh.UploadMeshData(true);
+				mesh.SetTriangles(body.triangles, 0);
+				mesh.RecalculateBounds();
+				mesh.RecalculateNormals();
+				mesh.RecalculateTangents();
+
+				mesh.GetTriangles(0);
+
+				mesh.UploadMeshData(true);
                 return mesh;
             }
             catch (Exception e)
@@ -192,43 +130,42 @@ namespace Pcx
             }
         }
 
-        PointCloudData ImportAsPointCloudData(string path)
-        {
-            try
-            {
-                var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                var header = ReadDataHeader(new StreamReader(stream));
-                var body = ReadDataBody(header, new BinaryReader(stream));
-                var data = ScriptableObject.CreateInstance<PointCloudData>();
-                data.Initialize(body.vertices, body.colors);
-                data.name = Path.GetFileNameWithoutExtension(path);
-                return data;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("Failed importing " + path + ". " + e.Message);
-                return null;
-            }
-        }
+		public Mesh ImportFromStreamAsMesh(MemoryStream stream)
+		{
+			try
+			{
+				var header = ReadDataHeader(new StreamReader(stream));
+				var body = ReadDataBody(header, new BinaryReader(stream));
 
-        BakedPointCloud ImportAsBakedPointCloud(string path)
-        {
-            try
-            {
-                var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                var header = ReadDataHeader(new StreamReader(stream));
-                var body = ReadDataBody(header, new BinaryReader(stream));
-                var data = ScriptableObject.CreateInstance<BakedPointCloud>();
-                data.Initialize(body.vertices, body.colors);
-                data.name = Path.GetFileNameWithoutExtension(path);
-                return data;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("Failed importing " + path + ". " + e.Message);
-                return null;
-            }
-        }
+				var mesh = new Mesh();
+
+				mesh.indexFormat = header.vertexCount > 65535 ?
+					IndexFormat.UInt32 : IndexFormat.UInt16;
+
+				mesh.SetVertices(body.vertices);
+				mesh.SetColors(body.colors);
+
+				mesh.SetIndices(
+					Enumerable.Range(0, header.vertexCount).ToArray(),
+					MeshTopology.Points, 0
+				);
+
+				mesh.SetTriangles(body.triangles, 0);
+				mesh.RecalculateBounds();
+				mesh.RecalculateNormals();
+				mesh.RecalculateTangents();
+
+				mesh.GetTriangles(0);
+
+				mesh.UploadMeshData(true);
+				return mesh;
+			}
+			catch (Exception e)
+			{
+				Debug.LogError("Failed importing from stream. " + e.Message);
+				return null;
+			}
+		}
 
         DataHeader ReadDataHeader(StreamReader reader)
         {
@@ -261,16 +198,13 @@ namespace Pcx
                 // Element declaration (unskippable)
                 if (col[0] == "element")
                 {
-                    if (col[1] == "vertex")
+                    switch(col[1])
                     {
-                        data.vertexCount = Convert.ToInt32(col[2]);
-                        skip = false;
-                    }
-                    else
-                    {
-                        // Don't read elements other than vertices.
-                        skip = true;
-                    }
+                        case "vertex": data.vertexCount = Convert.ToInt32(col[2]); skip = false; break;
+                        case "face"  : data.faceCount = Convert.ToInt32(col[2]); skip = false; break;
+                        default      : skip = true; break;
+
+					}
                 }
 
                 if (skip) continue;
@@ -336,6 +270,19 @@ namespace Pcx
                         if (GetPropertySize(prop) != 8)
                             throw new ArgumentException("Invalid property type ('" + line + "').");
                     }
+                    else if (col[1] == "list")
+					{
+						if (col[2] == "uchar")
+						{
+							if (col[3] == "int")
+							{
+								if (col[4] == "vertex_index")
+								{
+									prop = DataProperty.FaceListCorrect;
+                                }
+                            }
+                        }
+                    }
                     else
                     {
                         throw new ArgumentException("Unsupported property type ('" + line + "').");
@@ -392,9 +339,85 @@ namespace Pcx
                 data.AddPoint(x, y, z, r, g, b, a);
             }
 
-            return data;
+			if (header.properties.Contains(DataProperty.FaceListCorrect))
+			{
+				/*try
+				{
+					using (StreamWriter sw = new StreamWriter(new FileStream("Assets/" + "mesh" + ".txt", FileMode.OpenOrCreate, FileAccess.Write)))
+					{
+						List<byte> bytes = new List<byte>();
+						for (int i = 0; i < header.faceCount; i++)
+						{
+                            var line = "";
+							for (int j = 0; j < 13; j++)
+							{
+								line += reader.ReadByte() + " ";
+							}
+                            sw.WriteLine(line);
+						}
+
+					}
+				}
+				catch (Exception e)
+				{
+                    Debug.LogException(e);
+				}*/
+
+
+				for (var i = 0; i < header.faceCount; i++)
+                {
+                    switch (reader.ReadByte())
+                    {
+                        case 3:
+                            {
+								var f1 = reader.ReadInt32();
+								var f2 = reader.ReadInt32();
+								var f3 = reader.ReadInt32();
+
+								data.AddTriangle(f1, f2, f3);
+								break;
+						    }
+                        case 4:
+                            {
+								var f1 = reader.ReadInt32();
+								var f2 = reader.ReadInt32();
+								var f3 = reader.ReadInt32();
+								var f4 = reader.ReadInt32();
+
+								data.AddTriangle(f1, f2, f3);
+								data.AddTriangle(f3, f4, f1);
+								break;
+							}
+                        default: { break; }
+                    }
+				}
+
+				/*for (int i = 0; i < header.faceCount; i++)
+				{
+					List<byte> bytes = new List<byte>();
+					for (int j = 0; j < 13; j++)
+					{
+						bytes.Add(reader.ReadByte());
+					}
+					var i1s = bytes.GetRange(1, 4).ToArray();
+					int i1 = BitConverter.ToInt32(i1s, 0);
+
+					var i2s = bytes.GetRange(5, 4).ToArray();
+					int i2 = BitConverter.ToInt32(i2s, 0);
+
+					var i3s = bytes.GetRange(9, 4).ToArray();
+					int i3 = BitConverter.ToInt32(i3s, 0);
+
+                    Debug.Log($"{i1} {i2} {i3}");
+
+					data.AddTriangle(i1, i2, i3);
+				}*/
+			}
+
+
+			return data;
         }
-    }
+	}
 
     #endregion
 }
