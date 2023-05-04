@@ -11,8 +11,8 @@ public class ActivateGrabRay : MonoBehaviour
     public XRDirectInteractor leftDirectGrab;
     public XRDirectInteractor rightDirectGrab;
 
-    // Start is called before the first frame update
-    void Start()
+	// Start is called before the first frame update
+	void Start()
     {
         
     }

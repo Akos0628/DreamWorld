@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using UnityEngine.XR.Interaction.Toolkit;
 using Pcx;
 using TMPro;
+using UnityEngine.XR.Interaction.Toolkit.Transformers;
 
 public class SpawnItem : MonoBehaviour
 {
@@ -16,9 +17,12 @@ public class SpawnItem : MonoBehaviour
 	public TMP_InputField prompt;
 	private static int count = 0;
 
+	private static List<GameObject> list = new List<GameObject>();
+
 	public void Start()
 	{
 		//StartCoroutine(GeneratNew());
+		Physics.IgnoreLayerCollision(8, 7);
 	}
 
 	public void OnClickGenerate()
@@ -100,11 +104,30 @@ public class SpawnItem : MonoBehaviour
 		var mc = go.AddComponent<MeshCollider>();
 		mc.convex = true;
 		mc.sharedMesh = mesh;
-		
+
 		var rb = go.AddComponent<Rigidbody>();
+		rb.useGravity = false;
+		rb.drag = 1f;
+		rb.angularDrag = 1f;
+
+		var xrGrabTransf = go.AddComponent<XRGeneralGrabTransformer>();
+		xrGrabTransf.allowTwoHandedScaling = true;
+		xrGrabTransf.minimumScaleRatio = 0.01f;
+		xrGrabTransf.maximumScaleRatio = 10f;
 
 		var xrGrabInt = go.AddComponent<XRGrabInteractable>();
-		xrGrabInt.interactionLayers = 12; // layer 3 and 4
+		xrGrabInt.interactionLayers = 4;//12; // layer 2 and 3
 		xrGrabInt.useDynamicAttach = true;
+		xrGrabInt.throwOnDetach = false;
+		xrGrabInt.selectMode = InteractableSelectMode.Multiple;
+		xrGrabInt.MoveMultipleGrabTransformerTo(xrGrabTransf, 0);
+
+		go.layer = 7;
+
+		list.Add(go);
+		foreach(var obj in list)
+		{
+			Physics.IgnoreCollision(obj.GetComponent<Collider>(), mc);
+		}
 	}
 }

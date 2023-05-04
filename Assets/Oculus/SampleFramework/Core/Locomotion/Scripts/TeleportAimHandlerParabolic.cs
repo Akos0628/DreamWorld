@@ -13,7 +13,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// This aim handler simulates the parabolic curve that a thrown item would follow, a common style of teleport aiming.
+/// This aim handler simulates the parabolic curve that a thrown interactor would follow, a common style of teleport aiming.
 /// </summary>
 public class TeleportAimHandlerParabolic : TeleportAimHandler
 {
