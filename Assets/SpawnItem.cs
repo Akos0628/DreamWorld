@@ -9,9 +9,11 @@ using UnityEngine.XR.Interaction.Toolkit;
 using Pcx;
 using TMPro;
 using UnityEngine.XR.Interaction.Toolkit.Transformers;
+using UnityEditor;
 
 public class SpawnItem : MonoBehaviour
 {
+	public XRInteractionManager InteractionManager;
 	public GameObject go;
 	public string url = "http://localhost:5000/";
 	public TMP_InputField prompt;
@@ -89,6 +91,8 @@ public class SpawnItem : MonoBehaviour
 		PlyImporterRuntime importer = new PlyImporterRuntime();
 		Mesh mesh = importer.ImportFromStreamAsMesh(stream);
 
+		//AssetDatabase.CreateAsset(mesh, "Assets/mesh1.asset");
+
 		mesh.name = "mesh" + count;
 		go = new GameObject("object" + count);
 		count += 1;
@@ -103,6 +107,7 @@ public class SpawnItem : MonoBehaviour
 
 		var mc = go.AddComponent<MeshCollider>();
 		mc.convex = true;
+		mc.sharedMesh = null;
 		mc.sharedMesh = mesh;
 
 		var rb = go.AddComponent<Rigidbody>();
@@ -121,6 +126,9 @@ public class SpawnItem : MonoBehaviour
 		xrGrabInt.throwOnDetach = false;
 		xrGrabInt.selectMode = InteractableSelectMode.Multiple;
 		xrGrabInt.MoveMultipleGrabTransformerTo(xrGrabTransf, 0);
+		xrGrabInt.interactionManager = InteractionManager;
+
+		mesh.UploadMeshData(true);
 
 		go.layer = 7;
 

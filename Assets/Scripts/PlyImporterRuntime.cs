@@ -157,7 +157,6 @@ namespace Pcx
 
 				mesh.GetTriangles(0);
 
-				mesh.UploadMeshData(true);
 				return mesh;
 			}
 			catch (Exception e)
