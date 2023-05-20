@@ -25,6 +25,7 @@ public class SpawnItem : MonoBehaviour
 	{
 		//StartCoroutine(GeneratNew());
 		Physics.IgnoreLayerCollision(8, 7);
+		Physics.IgnoreLayerCollision(9, 7);
 	}
 
 	public void OnClickGenerate()
